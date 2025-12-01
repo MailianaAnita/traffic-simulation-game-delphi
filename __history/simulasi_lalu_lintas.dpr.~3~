@@ -1,0 +1,18 @@
+program simulasi_lalu_lintas;
+
+uses
+  Vcl.Forms,
+  Home in 'Home.pas' {Form1},
+  pilih_mobil in 'pilih_mobil.pas' {Form2},
+  pink in 'pink.pas' {form3};
+
+{$R *.res}
+
+begin
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TForm2, Form2);
+  Application.CreateForm(TForm3, Form3);
+  Application.Run;
+end.

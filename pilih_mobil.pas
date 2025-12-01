@@ -1,0 +1,75 @@
+unit pilih_mobil;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Imaging.pngimage, Vcl.ExtCtrls;
+
+type
+  TForm2 = class(TForm)
+    Image1: TImage;
+    Image2: TImage;
+    Image3: TImage;
+    Image4: TImage;
+    Image5: TImage;
+    Image7: TImage;
+    Image8: TImage;
+    Image9: TImage;
+    procedure Image2Click(Sender: TObject);
+    procedure Image3Click(Sender: TObject);
+    procedure Image4Click(Sender: TObject);
+    procedure Image5Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form2: TForm2;
+  jenismobil : integer;
+
+implementation
+
+{$R *.dfm}
+
+uses pink, merah, kuning, putih;
+
+procedure TForm2.Image2Click(Sender: TObject);
+begin
+  jenismobil := 4;
+  if MessageDlg('Apakah Anda yakin memilih mobil pink?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+    Form3.Show;
+  end;
+end;
+
+procedure TForm2.Image3Click(Sender: TObject);
+begin
+  jenismobil := 1;
+  if MessageDlg('Apakah Anda yakin memilih mobil merah?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+  Form4.Show;
+  end;
+end;
+
+procedure TForm2.Image4Click(Sender: TObject);
+begin
+ jenismobil := 2;
+ if MessageDlg('Apakah Anda yakin memilih mobil kuning?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+  Form5.Show;
+  end;
+end;
+
+procedure TForm2.Image5Click(Sender: TObject);
+begin
+  jenismobil := 3;
+  if MessageDlg('Apakah Anda yakin memilih mobil putih?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+  Form6.Show;
+  end;
+end;
+
+end.

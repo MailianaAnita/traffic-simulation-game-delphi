@@ -1,0 +1,736 @@
+unit pink;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
+  Vcl.ExtCtrls, Vcl.Imaging.pngimage, Vcl.Imaging.jpeg;
+
+type
+  TLampuMode = (mlMerah, mlKuning1, mlHijau, mlKuning2);
+
+  TForm3 = class(TForm)
+    Image1, Image4, Image6, Image8, Image9, mobil: TImage;
+    Palang1, Palang2, Palang3, Palang4: TImage;
+    Panel1, Panel2: TPanel;
+    Label1,
+    LabelScore: TLabel;
+    Button1, mulailagi, start: TButton;
+    Timer1, Timer3, Timer2, Timer4: TTimer;
+    Langgar1: TShape;
+    ShapeRed1, ShapeYellow1, ShapeGreen1: TShape;
+    ImageDiamond1, ImageDiamond2, ImageDiamond3: TImage;
+    ImageDiamond4, ImageDiamond5, ImageDiamond6: TImage;
+    PanelLulus: TPanel;
+    ImagePolisi: TImage;
+    LabelPesan: TLabel;
+    ButtonOK: TButton;
+    keluar: TButton;
+    Shape1: TShape;
+    Shape2: TShape;
+    Shape3: TShape;
+    Shape4: TShape;
+    Shape5: TShape;
+    Shape6: TShape;
+    Timermobil: TTimer;
+    Shape7: TShape;
+    procedure FormCreate(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure Timer3Timer(Sender: TObject);
+    procedure startClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure GameOver;
+    procedure mulailagiClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Timer2Timer(Sender: TObject);
+    procedure Timer4Timer(Sender: TObject);
+    procedure CekTabrakanDanSembunyikan(Diamond: TImage);
+    procedure ButtonOKClick(Sender: TObject);
+    procedure keluarClick(Sender: TObject);
+    procedure TimermobilTimer(Sender: TObject);
+    procedure PanelLulusClick(Sender: TObject); // tambahan untuk jalur
+
+  private
+    Score : Integer;
+    nyawa: Integer;
+    ModeLampu: TLampuMode;
+    LampuTimer: Integer;
+    sudahLewatLanggar1: Boolean;
+    palang34Countdown: Integer;
+    palang12Countdown: Integer;
+    JalurShapes: array of TShape; // tambahan untuk jalur
+    DiamondImages: array[1..6] of TImage;
+    DiamondBaseY: array[1..6] of Integer;
+    MovingUp: array[1..6] of Boolean;
+    ArahGerak: Word;   //tambahan untuk jalur
+    gameBerakhir: Boolean; // tambahan untuk jalur
+    function IsOnTrack(const Rect: TRect): Boolean;  // tambahan untuk jalur
+    procedure CekPalang;
+    procedure SetPalang(Palang: TImage; Buka: Boolean);
+    procedure CekKemenangan;
+
+
+  public
+  end;
+
+const
+  AreaTutupPalang34_Top    = 200;
+  AreaTutupPalang34_Bottom = 400;
+  AreaTutupPalang12_Top    = 100;
+  AreaTutupPalang12_Bottom = 160;
+
+  Palang34DurasiTutup = 140;
+  Palang12DurasiTutup = 200;
+
+var
+  Form3: TForm3;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm3.FormCreate(Sender: TObject);
+
+var i: Integer;
+begin
+  Score := 0;
+  LabelScore.Caption := 'Skor: 0';
+  nyawa := 3;
+  Timer1.Interval := 50;
+  Timer3.Interval := 100;
+  Timer1.Enabled := False;
+  Timer3.Enabled := False;
+  Image9.Top := Height + 10;
+  ModeLampu := mlMerah;
+  LampuTimer := 0;
+  sudahLewatLanggar1 := False;
+  gameBerakhir := False;  // tambahan untuk jalur
+  palang34Countdown := 0;
+  palang12Countdown := 0;
+  Palang1.Tag := 1;
+  Palang2.Tag := 1;
+  Palang3.Tag := 1;
+  Palang4.Tag := 1;
+  Palang1.Picture.LoadFromFile('palang_buka.png');
+  Palang2.Picture.LoadFromFile('palang_buka.png');
+  Palang3.Picture.LoadFromFile('palang_buka.png');
+  Palang4.Picture.LoadFromFile('palang_buka.png');
+  Button1.Visible := False;
+  PanelLulus.Visible := False;
+  DiamondImages[1] := ImageDiamond1;
+  DiamondImages[2] := ImageDiamond2;
+  DiamondImages[3] := ImageDiamond3;
+  DiamondImages[4] := ImageDiamond4;
+  DiamondImages[5] := ImageDiamond5;
+  DiamondImages[6] := ImageDiamond6;
+
+
+  SetLength(JalurShapes, 7);    // tambahan untuk jalur
+  JalurShapes[0] := Shape1;
+  JalurShapes[1] := Shape2;
+  JalurShapes[2] := Shape3;
+  JalurShapes[3] := Shape4;
+  JalurShapes[4] := Shape5;
+  JalurShapes[5] := Shape6;
+  jalurShapes[6]:= Shape7;
+
+
+  for i := 1 to 6 do
+  begin
+    DiamondBaseY[i] := DiamondImages[i].Top;
+    MovingUp[i] := True;
+  end;
+  Timer2.Enabled := True;
+end;
+
+procedure TForm3.startClick(Sender: TObject);
+begin
+gameBerakhir := False;   // tambahan untuk jalur
+  mobil.Top := 204;
+  mobil.Left := 430;
+  mobil.Visible := True;
+  start.Visible := False;
+  start.Enabled := False;
+  Timer1.Enabled := True;
+  timer2.Enabled := True;
+  Timer3.Enabled := True;
+  timermobil.Enabled :=True; // tambahan untuk jalur
+  sudahLewatLanggar1 := False;
+end;
+
+procedure TForm3.GameOver;
+begin
+if gameBerakhir then Exit;     // tambahan untuk jalur
+   gameBerakhir := True;        // tambahan untuk jalur
+
+   Timermobil.Enabled := False;  // tambahan untuk jalur
+  Dec(nyawa);
+  case nyawa of
+    2: Image8.Picture.LoadFromFile('bintang_kosong.jpg');
+    1: Image6.Picture.LoadFromFile('bintang_kosong.jpg');
+    0:
+    begin
+      Image4.Picture.LoadFromFile('bintang_kosong.jpg');
+      ShowMessage('Game Over! Kesempatan habis.');
+      start.Visible := True;
+      start.Enabled := False;
+      mulaiLagi.Visible := False;
+      Button1.Visible := True;
+      Timer1.Enabled := False;
+      Timer3.Enabled := False;
+      mobil.Visible := False;
+      Exit;
+    end;
+  end;
+  mobil.Visible := False;
+  start.Visible := False;
+  mulaiLagi.Visible := True;
+end;
+
+procedure TForm3.keluarClick(Sender: TObject);
+var
+  Res: Integer;
+begin
+  Res := MessageDlg('Apakah anda ingin keluar dari program?', mtConfirmation, [mbYes, mbNo], 0);
+  if Res = mrYes then
+    Application.Terminate; // langsung keluar
+  // kalau no, gak perlu ngapa-ngapain, tetap di program
+end;
+
+procedure TForm3.Button1Click(Sender: TObject);
+var Res: Integer;
+i: Integer;
+begin
+  Res := MessageDlg('Apakah kamu ingin memulai ulang permainan?', mtConfirmation, [mbYes, mbNo], 0);
+  if Res = mrYes then
+  begin
+    nyawa := 3;
+    Image4.Picture.LoadFromFile('bintang_penuh.jpg');
+    Image6.Picture.LoadFromFile('bintang_penuh.jpg');
+    Image8.Picture.LoadFromFile('bintang_penuh.jpg');
+
+  // Reset posisi mobil
+  mobil.Left := 430;
+  mobil.Top := 204;
+  mobil.Visible := True;
+
+  // Reset posisi background (kereta api)
+  Image9.Top := 550;
+
+  // Reset skor
+  Score := 0;
+  LabelScore.Caption := 'Skor: 0';
+
+  // Reset status diamond agar terlihat semua lagi
+  for i := 1 to 6 do
+    DiamondImages[i].Visible := True;
+
+  // Reset timer dan mode lampu lalu lintas
+  Timer1.Enabled := True;
+  Timer3.Enabled := True;
+  Timer2.Enabled := True;
+  Timer4.Enabled := True;
+  Timermobil.Enabled :=True;    // tambahan untuk jalur
+
+  ModeLampu := mlMerah;
+  LampuTimer := 0;
+
+  // Reset nyawa kalau mau
+  //nyawa := 3; // kalau mau reset nyawa juga, uncomment ini
+
+  // Reset palang kereta supaya terbuka
+  SetPalang(Palang1, True);
+  SetPalang(Palang2, True);
+  SetPalang(Palang3, True);
+  SetPalang(Palang4, True);
+
+  // Reset countdown palang
+  palang34Countdown := 0;
+  palang12Countdown := 0;
+
+  // Reset status pelanggaran
+  sudahLewatLanggar1 := False;
+
+  // Hide panel lulus dan tombol mulailagi
+  gameBerakhir := False;
+  PanelLulus.Visible := False;
+  mulailagi.Visible := False;
+  start.Visible:= True;
+  start.Enabled := True
+  end
+  else Application.Terminate;
+end;
+
+
+procedure TForm3.mulailagiClick(Sender: TObject);
+var i: Integer;
+begin
+  gameBerakhir := False;   // tambahan untuk jalur
+  // Reset posisi mobil
+  mobil.Left := 430;
+  mobil.Top := 204;
+  mobil.Visible := True;
+
+  // Reset posisi background (kereta api)
+  Image9.Top := 550;
+
+  // Reset skor
+  Score := 0;
+  LabelScore.Caption := 'Skor: 0';
+
+  // Reset status diamond agar terlihat semua lagi
+  for i := 1 to 6 do
+    DiamondImages[i].Visible := True;
+
+  // Reset timer dan mode lampu lalu lintas
+  Timer1.Enabled := True;
+  Timer3.Enabled := True;
+  Timer2.Enabled := True;
+  Timer4.Enabled := True;
+  Timermobil.Enabled :=True;    // tambahan untuk jalur
+
+  ModeLampu := mlMerah;
+  LampuTimer := 0;
+
+  // Reset nyawa kalau mau
+  //nyawa := 3; // kalau mau reset nyawa juga, uncomment ini
+
+  // Reset palang kereta supaya terbuka
+  SetPalang(Palang1, True);
+  SetPalang(Palang2, True);
+  SetPalang(Palang3, True);
+  SetPalang(Palang4, True);
+
+  // Reset countdown palang
+  palang34Countdown := 0;
+  palang12Countdown := 0;
+
+  // Reset status pelanggaran
+  sudahLewatLanggar1 := False;
+
+  // Hide panel lulus dan tombol mulailagi
+  PanelLulus.Visible := False;
+  mulailagi.Visible := False;
+  start.Visible:= False;
+end;
+procedure TForm3.PanelLulusClick(Sender: TObject);
+begin
+
+end;
+
+//begin
+
+//  mobil.Left := 430;
+//  mobil.Top := 204;
+//  Image9.Top := 550;
+//  mobil.Visible := True;
+//  mulaiLagi.Visible := False;
+//  start.Visible := False;
+//  Timer1.Enabled := True;
+//  Timer3.Enabled := True;
+//  sudahLewatLanggar1 := False;
+//  palang34Countdown := 0;
+//  palang12Countdown := 0;
+//end;
+
+procedure TForm3.Timer1Timer(Sender: TObject);
+begin
+  Image9.Top := Image9.Top - 1;
+  if Image9.Top < -Image9.Height then
+    Image9.Top := 550;
+  CekPalang;
+  if palang34Countdown > 0 then
+  begin
+    Dec(palang34Countdown);
+    if palang34Countdown = 0 then
+    begin
+      SetPalang(Palang3, True);
+      SetPalang(Palang4, True);
+    end;
+  end;
+  if palang12Countdown > 0 then
+  begin
+    Dec(palang12Countdown);
+    if palang12Countdown = 0 then
+    begin
+      SetPalang(Palang1, True);
+      SetPalang(Palang2, True);
+    end;
+  end;
+end;
+
+
+function TForm3.IsOnTrack(const Rect: TRect): Boolean;     // tambahan untuk jalur
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to High(JalurShapes) do
+  begin
+    if Rect.IntersectsWith(JalurShapes[i].BoundsRect) then
+      Exit(True);
+  end;
+end;
+
+
+procedure TForm3.Timer2Timer(Sender: TObject);
+const
+  Step = 2;
+  MaxOffset = 10;
+var i: Integer;
+begin
+  for i := 1 to 6 do
+  begin
+    if MovingUp[i] then
+      DiamondImages[i].Top := DiamondImages[i].Top - Step
+    else
+      DiamondImages[i].Top := DiamondImages[i].Top + Step;
+    if DiamondImages[i].Top <= DiamondBaseY[i] - MaxOffset then
+      MovingUp[i] := False
+    else if DiamondImages[i].Top >= DiamondBaseY[i] + MaxOffset then
+      MovingUp[i] := True;
+  end;
+end;
+
+procedure TForm3.CekTabrakanDanSembunyikan(Diamond: TImage);
+begin
+  if Diamond.Visible and Mobil.BoundsRect.IntersectsWith(Diamond.BoundsRect) then
+  begin
+    Diamond.Visible := False;
+    Inc(Score);
+    LabelScore.Caption := 'Skor: ' + IntToStr(Score);
+    CekKemenangan;
+  end;
+end;
+
+procedure TForm3.CekKemenangan;
+begin
+  if Score >= 6 then
+  begin
+    Timer1.Enabled := False;
+    Timer2.Enabled := False;
+    Timer3.Enabled := False;
+    Timer4.Enabled := False;
+    mobil.Visible := False;
+    PanelLulus.Visible := True;
+    ImagePolisi.Picture.LoadFromFile('polisi.png');
+    LabelPesan.Caption := 'Selamat, anda telah lulus ujian simulasi lalu lintas!';
+  end;
+end;
+
+procedure TForm3.Timer3Timer(Sender: TObject);
+begin
+  Inc(LampuTimer);
+  case ModeLampu of
+    mlMerah:
+      if LampuTimer >= 40 then
+      begin
+        ModeLampu := mlKuning1;
+        LampuTimer := 0;
+      end;
+    mlKuning1:
+      if LampuTimer >= 20 then
+      begin
+        ModeLampu := mlHijau;
+        LampuTimer := 0;
+      end;
+    mlHijau:
+      if LampuTimer >= 40 then
+      begin
+        ModeLampu := mlKuning2;
+        LampuTimer := 0;
+      end;
+    mlKuning2:
+      if LampuTimer >= 20 then
+      begin
+        ModeLampu := mlMerah;
+        LampuTimer := 0;
+        sudahLewatLanggar1 := False;
+      end;
+  end;
+  case ModeLampu of
+    mlMerah:
+      begin
+        ShapeRed1.Brush.Color := clRed;
+        ShapeYellow1.Brush.Color := clGray;
+        ShapeGreen1.Brush.Color := clGray;
+      end;
+    mlKuning1, mlKuning2:
+      begin
+        ShapeRed1.Brush.Color := clGray;
+        ShapeYellow1.Brush.Color := clYellow;
+        ShapeGreen1.Brush.Color := clGray;
+      end;
+    mlHijau:
+      begin
+        ShapeRed1.Brush.Color := clGray;
+        ShapeYellow1.Brush.Color := clGray;
+        ShapeGreen1.Brush.Color := clLime;
+      end;
+  end;
+end;
+
+procedure TForm3.Timer4Timer(Sender: TObject);
+begin
+  CekTabrakanDanSembunyikan(ImageDiamond1);
+  CekTabrakanDanSembunyikan(ImageDiamond2);
+  CekTabrakanDanSembunyikan(ImageDiamond3);
+  CekTabrakanDanSembunyikan(ImageDiamond4);
+  CekTabrakanDanSembunyikan(ImageDiamond5);
+  CekTabrakanDanSembunyikan(ImageDiamond6);
+end;
+
+procedure TForm3.TimermobilTimer(Sender: TObject);      // tambahan untuk jalur agar jalan mobil bisa otomatis
+var
+  lampumerah: Boolean;
+  nextLeft, nextTop: Integer;
+  nextRect, tmp: TRect;
+  beradaDiJalur: Boolean;
+  i: Integer;
+begin
+  if gameBerakhir then Exit;
+
+  lampumerah := (ModeLampu = mlMerah);
+
+  // Cek pelanggaran lampu merah
+  if lampumerah and not sudahLewatLanggar1 and
+     (mobil.BoundsRect.IntersectsWith(Langgar1.BoundsRect)) then
+  begin
+    GameOver;
+    ShowMessage('Mobil melanggar lampu merah!');
+    sudahLewatLanggar1 := True;
+    Timer2.Enabled := False;
+    Exit;
+  end;
+
+  // Cek tabrakan dengan lampu merah
+  if lampumerah and (mobil.BoundsRect.IntersectsWith(ShapeRed1.BoundsRect)) then
+  begin
+    GameOver;
+    ShowMessage('Mobil menabrak lampu merah!');
+    Timermobil.Enabled := False;
+    Exit;
+  end;
+
+  // Cek tabrakan dengan kereta
+  if mobil.BoundsRect.IntersectsWith(Image9.BoundsRect) then
+  begin
+    GameOver;
+    ShowMessage('Mobil tertabrak kereta!');
+    Timermobil.Enabled := False;
+    Exit;
+  end;
+
+  // Hitung posisi baru
+  nextLeft := mobil.Left;
+  nextTop := mobil.Top;
+
+  case ArahGerak of
+    VK_LEFT: Dec(nextLeft, 5);
+    VK_RIGHT: Inc(nextLeft, 5);
+    VK_UP: Dec(nextTop, 5);
+    VK_DOWN: Inc(nextTop, 5);
+  end;
+
+  // Cek batas form
+  if (nextLeft < 0) or (nextLeft + mobil.Width > ClientWidth) or
+     (nextTop < 0) or (nextTop + mobil.Height > ClientHeight) then
+  begin
+    Timermobil.Enabled := False;
+    Exit;
+  end;
+
+  // Buat rectangle untuk posisi berikutnya
+  nextRect := Rect(nextLeft, nextTop, nextLeft + mobil.Width, nextTop + mobil.Height);
+
+  // Cek apakah akan menabrak palang tertutup
+  if ((Palang1.Tag = 0) and IntersectRect(tmp, nextRect, Palang1.BoundsRect)) or
+     ((Palang2.Tag = 0) and IntersectRect(tmp, nextRect, Palang2.BoundsRect)) or
+     ((Palang3.Tag = 0) and IntersectRect(tmp, nextRect, Palang3.BoundsRect)) or
+     ((Palang4.Tag = 0) and IntersectRect(tmp, nextRect, Palang4.BoundsRect)) then
+  begin
+    GameOver;
+    ShowMessage('Mobil menabrak palang!');
+    Timermobil.Enabled := False;
+    Exit;
+  end;
+
+  // Cek apakah posisi baru masih berada di jalur
+  beradaDiJalur := False;
+
+  // Anggap nextRect udah di-set sebelumnya (isi posisi rectangle kendaraan)
+  for i := 0 to High(jalurshapes) do
+  begin
+    if IntersectRect(tmp, nextRect, jalurshapes[i].BoundsRect) then
+    begin
+      beradaDiJalur := True;
+      Break;
+    end;
+  end;
+
+  if not beradaDiJalur then
+  begin
+    Timermobil.Enabled := False;
+    Exit;
+  end;
+
+  // Pindahkan mobil ke posisi baru
+  mobil.Left := nextLeft;
+  mobil.Top := nextTop;
+
+  // Ubah gambar mobil sesuai arah            c
+  case ArahGerak of
+    VK_LEFT:
+    begin
+      mobil.Picture.LoadFromFile('car_left.png');
+      mobil.Width := 30;
+      mobil.Height := 30;
+    end;
+    VK_RIGHT:
+    begin
+     mobil.Picture.LoadFromFile('car_right.png');
+     mobil.Width := 30;
+     mobil.Height := 30;
+    end;
+    VK_UP:
+    begin
+     mobil.Picture.LoadFromFile('car_up.png');
+     mobil.Width := 30;
+     mobil.Height := 30;
+    end;
+    VK_DOWN:
+    begin
+    mobil.Picture.LoadFromFile('car_down.png');
+    mobil.Width := 30;
+    mobil.Height := 30;
+    end;
+  end;
+end;
+procedure TForm3.SetPalang(Palang: TImage; Buka: Boolean);
+begin
+  if Buka and (Palang.Tag <> 1) then
+  begin
+    Palang.Picture.LoadFromFile('palang_buka.png');
+    Palang.Tag := 1;
+  end
+  else if not Buka and (Palang.Tag <> 0) then
+  begin
+    Palang.Picture.LoadFromFile('palang_tutup.png');
+    Palang.Tag := 0;
+  end;
+end;
+
+procedure TForm3.CekPalang;
+begin
+  if (Image9.Top >= AreaTutupPalang34_Top) and (Image9.Top <= AreaTutupPalang34_Bottom) and (palang34Countdown = 0) then
+  begin
+    SetPalang(Palang3, False);
+    SetPalang(Palang4, False);
+    palang34Countdown := Palang34DurasiTutup;
+  end;
+  if (Image9.Top >= AreaTutupPalang12_Top) and (Image9.Top <= AreaTutupPalang12_Bottom) and (palang12Countdown = 0) then
+  begin
+    SetPalang(Palang1, False);
+    SetPalang(Palang2, False);
+    palang12Countdown := Palang12DurasiTutup;
+  end;
+end;
+
+procedure TForm3.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);     // form key di update sebagian code di pindahkan ke dalam timer mobil
+var
+  i: Integer;
+  diJalur: Boolean;
+begin
+  if gameBerakhir then Exit;
+
+  // Cek apakah mobil saat ini berada di jalur valid
+  diJalur := False;
+  for i := 0 to High(jalurshapes) do
+  begin
+    if mobil.BoundsRect.IntersectsWith(jalurshapes[i].BoundsRect) then
+    begin
+      diJalur := True;
+      Break;
+    end;
+  end;
+
+  // Hanya izinkan gerakan jika mobil di jalur
+  if diJalur then
+  begin
+    if Key in [VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN] then
+    begin
+      ArahGerak := Key;
+      Timermobil.Enabled := True;
+    end
+    else if Key = VK_SPACE then
+    begin
+      Timermobil.Enabled := False;
+    end;
+  end
+  else
+  begin
+    Timermobil.Enabled := False; // Pastikan tidak bergerak jika bukan di jalur
+  end;
+end;
+
+
+
+
+
+procedure TForm3.ButtonOKClick(Sender: TObject);
+  var
+  Res: Integer;
+begin
+   PanelLulus.Visible := False;
+  Res := MessageDlg('Mau main lagi?', mtConfirmation, [mbYes, mbNo], 0);
+  if Res = mrYes then
+  begin
+    // Reset permainan
+    PanelLulus.Visible := False;
+    PanelLulus.SendToBack;
+
+    Score := 0;
+    LabelScore.Caption := 'Skor: 0';
+
+    nyawa := 3;
+    Image4.Picture.LoadFromFile('bintang_penuh.jpg');
+    Image6.Picture.LoadFromFile('bintang_penuh.jpg');
+    Image8.Picture.LoadFromFile('bintang_penuh.jpg');
+
+    mobil.Left := 430;
+    mobil.Top := 204;
+    mobil.Visible := True;
+
+    Image9.Top := 550;
+
+    start.Visible := True;
+    start.Enabled := True;
+    mulaiLagi.Visible := False;
+
+    Timer1.Enabled := False;
+    Timer2.Enabled := True;
+    Timer3.Enabled := False;
+    Timer4.Enabled := True;
+
+    ModeLampu := mlMerah;
+    LampuTimer := 0;
+    sudahLewatLanggar1 := False;
+    palang34Countdown := 0;
+    palang12Countdown := 0;
+
+    // Munculin lagi diamond
+    ImageDiamond1.Visible := True;
+    ImageDiamond2.Visible := True;
+    ImageDiamond3.Visible := True;
+    ImageDiamond4.Visible := True;
+    ImageDiamond5.Visible := True;
+    ImageDiamond6.Visible := True;
+  end
+  else
+  begin
+    Application.Terminate;
+end;
+end;
+
+end.

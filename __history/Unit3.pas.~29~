@@ -1,0 +1,366 @@
+unit Unit3;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
+  Vcl.ExtCtrls, Vcl.Imaging.pngimage, Vcl.Imaging.jpeg;
+
+type
+  TLampuMode = (mlMerah, mlKuning1, mlHijau, mlKuning2);
+
+  TForm3 = class(TForm)
+    Image1, Image4, Image6, Image8, Image9, mobil: TImage;
+    Palang1, Palang2, Palang3, Palang4: TImage;
+    Panel1, Panel2: TPanel;
+    Label1, Label2, Label3, skor, Label5, Label6: TLabel;
+    Button1, mulailagi, start: TButton;
+    Timer1, Timer3: TTimer;
+    Langgar1: TShape;
+    ShapeRed1, ShapeYellow1, ShapeGreen1: TShape;
+
+    procedure FormCreate(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure Timer3Timer(Sender: TObject);
+    procedure startClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure GameOver;
+    procedure mulailagiClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+  private
+    nyawa: Integer;
+    ModeLampu: TLampuMode;
+    LampuTimer: Integer;
+    sudahLewatLanggar1: Boolean;
+    palang34Countdown: Integer;
+    palang12Countdown: Integer;
+    procedure CekPalang;
+    procedure SetPalang(Palang: TImage; Buka: Boolean);
+  public
+  end;
+
+const
+  AreaTutupPalang34_Top    = 200;
+  AreaTutupPalang34_Bottom = 400;
+  AreaTutupPalang12_Top    = 100;
+  AreaTutupPalang12_Bottom = 160;
+
+  Palang34DurasiTutup = 140; // 7 detik x 50 ms
+  Palang12DurasiTutup = 200; // 10 detik x 50 ms
+
+var
+  Form3: TForm3;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm3.FormCreate(Sender: TObject);
+begin
+  Timer1.Interval := 50;
+  Timer3.Interval := 100;
+  nyawa := 3;
+
+  Timer1.Enabled := False;
+  Timer3.Enabled := False;
+
+  Image9.Top := Height + 10;
+
+  ModeLampu := mlMerah;
+  LampuTimer := 0;
+  sudahLewatLanggar1 := False;
+  palang34Countdown := 0;
+  palang12Countdown := 0;
+
+  Palang1.Tag := 1;
+  Palang2.Tag := 1;
+  Palang3.Tag := 1;
+  Palang4.Tag := 1;
+
+  Palang1.Picture.LoadFromFile('palang_buka.png');
+  Palang2.Picture.LoadFromFile('palang_buka.png');
+  Palang3.Picture.LoadFromFile('palang_buka.png');
+  Palang4.Picture.LoadFromFile('palang_buka.png');
+
+  Button1.Visible := False;
+end;
+
+procedure TForm3.startClick(Sender: TObject);
+begin
+  mobil.Top := 204;
+  mobil.Left := 430;
+  mobil.Visible := True;
+
+  start.Visible := False;
+  start.Enabled := False;
+
+  Timer1.Enabled := True;
+  Timer3.Enabled := True;
+  sudahLewatLanggar1 := False;
+end;
+
+procedure TForm3.GameOver;
+begin
+  Dec(nyawa);
+  case nyawa of
+    2: Image8.Picture.LoadFromFile('bintang_kosong.jpg');
+    1: Image6.Picture.LoadFromFile('bintang_kosong.jpg');
+    0:
+      begin
+        Image4.Picture.LoadFromFile('bintang_kosong.jpg');
+        ShowMessage('Game Over! Kesempatan habis.');
+        start.Visible := True;
+        start.Enabled := False;
+        mulaiLagi.Visible := False;
+        Button1.Visible := True;
+        Timer1.Enabled := False;
+        Timer3.Enabled := False;
+        mobil.Visible := False;
+        Exit;
+      end;
+  end;
+
+  mobil.Visible := False;
+  start.Visible := False;
+  mulaiLagi.Visible := True;
+end;
+
+procedure TForm3.Button1Click(Sender: TObject);
+var
+  Res: Integer;
+begin
+  Res := MessageDlg('Apakah kamu ingin memulai ulang permainan?', mtConfirmation, [mbYes, mbNo], 0);
+  if Res = mrYes then
+  begin
+    nyawa := 3;
+    Image4.Picture.LoadFromFile('bintang_penuh.jpg');
+    Image6.Picture.LoadFromFile('bintang_penuh.jpg');
+    Image8.Picture.LoadFromFile('bintang_penuh.jpg');
+
+    mobil.Left := 430;
+    mobil.Top := 204;
+    mobil.Visible := True;
+
+    Image9.Top := 550;
+    start.Visible := True;
+    start.Enabled := True;
+    mulaiLagi.Visible := False;
+
+    Timer1.Enabled := False;
+    Timer3.Enabled := False;
+
+    ModeLampu := mlMerah;
+    LampuTimer := 0;
+    sudahLewatLanggar1 := False;
+    palang34Countdown := 0;
+    palang12Countdown := 0;
+  end
+  else
+    Application.Terminate;
+end;
+
+procedure TForm3.mulailagiClick(Sender: TObject);
+begin
+  mobil.Left := 430;
+  mobil.Top := 204;
+
+  Image9.Top := 550;
+  mobil.Visible := True;
+
+  mulaiLagi.Visible := False;
+  start.Visible := False;
+
+  Timer1.Enabled := True;
+  Timer3.Enabled := True;
+  sudahLewatLanggar1 := False;
+  palang34Countdown := 0;
+  palang12Countdown := 0;
+end;
+
+procedure TForm3.Timer1Timer(Sender: TObject);
+begin
+  Image9.Top := Image9.Top - 1;
+  if Image9.Top < -Image9.Height then
+    Image9.Top := 550;
+
+  CekPalang;
+
+  if palang34Countdown > 0 then
+  begin
+    Dec(palang34Countdown);
+    if palang34Countdown = 0 then
+    begin
+      SetPalang(Palang3, True);
+      SetPalang(Palang4, True);
+    end;
+  end;
+
+  if palang12Countdown > 0 then
+  begin
+    Dec(palang12Countdown);
+    if palang12Countdown = 0 then
+    begin
+      SetPalang(Palang1, True);
+      SetPalang(Palang2, True);
+    end;
+  end;
+end;
+
+procedure TForm3.CekPalang;
+begin
+  if (Image9.Top >= AreaTutupPalang34_Top) and (Image9.Top <= AreaTutupPalang34_Bottom) and
+     (palang34Countdown = 0) then
+  begin
+    SetPalang(Palang3, False);
+    SetPalang(Palang4, False);
+    palang34Countdown := Palang34DurasiTutup;
+  end;
+
+  if (Image9.Top >= AreaTutupPalang12_Top) and (Image9.Top <= AreaTutupPalang12_Bottom) and
+     (palang12Countdown = 0) then
+  begin
+    SetPalang(Palang1, False);
+    SetPalang(Palang2, False);
+    palang12Countdown := Palang12DurasiTutup;
+  end;
+end;
+
+procedure TForm3.SetPalang(Palang: TImage; Buka: Boolean);
+begin
+  if Buka and (Palang.Tag <> 1) then
+  begin
+    Palang.Picture.LoadFromFile('palang_buka.png');
+    Palang.Tag := 1;
+  end
+  else if not Buka and (Palang.Tag <> 0) then
+  begin
+    Palang.Picture.LoadFromFile('palang_tutup.png');
+    Palang.Tag := 0;
+  end;
+end;
+
+procedure TForm3.Timer3Timer(Sender: TObject);
+begin
+  Inc(LampuTimer);
+
+  case ModeLampu of
+    mlMerah:
+      if LampuTimer >= 40 then
+      begin
+        ModeLampu := mlKuning1;
+        LampuTimer := 0;
+      end;
+    mlKuning1:
+      if LampuTimer >= 20 then
+      begin
+        ModeLampu := mlHijau;
+        LampuTimer := 0;
+      end;
+    mlHijau:
+      if LampuTimer >= 40 then
+      begin
+        ModeLampu := mlKuning2;
+        LampuTimer := 0;
+      end;
+    mlKuning2:
+      if LampuTimer >= 20 then
+      begin
+        ModeLampu := mlMerah;
+        LampuTimer := 0;
+        sudahLewatLanggar1 := False;
+      end;
+  end;
+
+  case ModeLampu of
+    mlMerah:
+      begin
+        ShapeRed1.Brush.Color := clRed;
+        ShapeYellow1.Brush.Color := clGray;
+        ShapeGreen1.Brush.Color := clGray;
+      end;
+    mlKuning1, mlKuning2:
+      begin
+        ShapeRed1.Brush.Color := clGray;
+        ShapeYellow1.Brush.Color := clYellow;
+        ShapeGreen1.Brush.Color := clGray;
+      end;
+    mlHijau:
+      begin
+        ShapeRed1.Brush.Color := clGray;
+        ShapeYellow1.Brush.Color := clGray;
+        ShapeGreen1.Brush.Color := clLime;
+      end;
+  end;
+end;
+
+procedure TForm3.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  lampumerah: Boolean;
+  nextRect: TRect;
+  canMove: Boolean;
+begin
+  lampumerah := (ModeLampu = mlMerah);
+
+  // Deteksi pelanggaran lampu merah saat belum melewati langgar1
+  if lampumerah and not sudahLewatLanggar1 and
+     (mobil.BoundsRect.IntersectsWith(Langgar1.BoundsRect)) then
+  begin
+    GameOver;
+    ShowMessage('Mobil melanggar lalu lintas!');
+    sudahLewatLanggar1 := True;
+    Exit;
+  end;
+
+  canMove := True; // asumsinya mobil boleh bergerak
+  nextRect := mobil.BoundsRect;
+
+  case Key of
+    VK_LEFT: Dec(nextRect.Left, 10);  // Geser posisi simulasi ke kiri
+    VK_RIGHT: Inc(nextRect.Left, 10); // Geser ke kanan
+    VK_UP: Dec(nextRect.Top, 10);     // Geser ke atas
+    VK_DOWN: Inc(nextRect.Top, 10);   // Geser ke bawah
+  end;
+  nextRect.Right := nextRect.Left + mobil.Width;
+  nextRect.Bottom := nextRect.Top + mobil.Height;
+
+  // Cek apakah nextRect akan menabrak palang yang tertutup
+  if ((Palang1.Tag = 0) and IntersectRect(nextRect, nextRect, Palang1.BoundsRect)) or
+     ((Palang2.Tag = 0) and IntersectRect(nextRect, nextRect, Palang2.BoundsRect)) or
+     ((Palang3.Tag = 0) and IntersectRect(nextRect, nextRect, Palang3.BoundsRect)) or
+     ((Palang4.Tag = 0) and IntersectRect(nextRect, nextRect, Palang4.BoundsRect)) then
+  begin
+    GameOver;
+    ShowMessage('Mobil menabrak palang tertutup!');
+    Exit;
+  end;
+
+
+  if not canMove then Exit;
+
+  // Jika tidak menabrak palang tertutup, maka gerakkan mobil
+  case Key of
+    VK_LEFT:
+      begin
+        mobil.Left := mobil.Left - 10;
+        mobil.Picture.LoadFromFile('car_left.png');
+      end;
+    VK_RIGHT:
+      begin
+        mobil.Left := mobil.Left + 10;
+        mobil.Picture.LoadFromFile('car_right.png');
+      end;
+    VK_UP:
+      begin
+        mobil.Top := mobil.Top - 10;
+        mobil.Picture.LoadFromFile('car_up.png');
+      end;
+    VK_DOWN:
+      begin
+        mobil.Top := mobil.Top + 10;
+        mobil.Picture.LoadFromFile('car_down.png');
+      end;
+  end;
+end;
+
+end.
